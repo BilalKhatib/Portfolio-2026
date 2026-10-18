@@ -1,0 +1,4 @@
+:root {--bg:#040A10;--surface:#111927;--glass:rgba(12,25,39,.66);--cyan:#00D1FF;--blue:#149FFF;--red:#FF2949;--text:#E8F4FF;--muted:#94A8B8;--stroke:rgba(104,170,214,.45);--font-display:'Space Grotesk',sans-serif;--font-body:Inter,sans-serif;--font-mono:'JetBrains Mono',monospace;}
+.cyber-glass{background:var(--glass);border:1px solid var(--stroke);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.cyber-glow{box-shadow:0 0 20px #00d1ff4d,0 0 60px #00d1ff18;}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}

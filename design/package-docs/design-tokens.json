@@ -1,0 +1,30 @@
+{
+  "colors": {
+    "background": "#040A10",
+    "surface": "#111927",
+    "surfaceGlass": "rgba(12,25,39,0.66)",
+    "primary": "#00D1FF",
+    "primaryGlow": "#149FFF",
+    "accent": "#FF2949",
+    "text": "#E8F4FF",
+    "muted": "#94A8B8",
+    "stroke": "rgba(104,170,214,0.45)",
+    "success": "#22E5AF"
+  },
+  "fonts": {
+    "display": "Space Grotesk",
+    "body": "Inter",
+    "terminal": "JetBrains Mono"
+  },
+  "motion": {
+    "entranceMs": 1100,
+    "hoverMs": 220,
+    "heroParallaxDegrees": 3,
+    "reducedMotion": true
+  },
+  "breakpoints": {
+    "mobile": 640,
+    "tablet": 1024,
+    "desktop": 1440
+  }
+}

@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* Desktop "stage" layout: the concept composition, only on wide-enough
+   landscape screens. Everything else uses the stacked flow layout. */
+@custom-variant stage (@media (width >= 64rem) and (min-aspect-ratio: 5/4));
+
+/* Tokens from the asset package (design/package-docs/design-tokens.json) */
+@theme {
+  --color-bg: #040a10;
+  --color-surface: #111927;
+  --color-glass: rgb(12 25 39 / 0.66);
+  --color-cyan: #00d1ff;
+  --color-blue: #149fff;
+  --color-red: #ff2949;
+  --color-ink: #e8f4ff;
+  --color-muted: #94a8b8;
+  --color-stroke: rgb(104 170 214 / 0.45);
+  --color-success: #22e5af;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-blink: blink 1.05s steps(1) infinite;
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+}
+
+@theme inline {
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-hand: var(--font-architects-daughter), "Comic Sans MS", cursive;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: rgb(0 209 255 / 0.3);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  [id] {
+    scroll-margin-top: 5rem;
+  }
+}
+
+@layer components {
+  .cyber-glass {
+    background: var(--color-glass);
+    border: 1px solid rgb(104 170 214 / 0.22);
+    backdrop-filter: blur(18px) saturate(1.2);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  }
+
+  .cyber-glow {
+    box-shadow:
+      0 0 20px rgb(0 209 255 / 0.3),
+      0 0 60px rgb(0 209 255 / 0.09);
+  }
+
+  /* Brushed-chrome display type from the concept */
+  .text-chrome {
+    background: linear-gradient(
+      178deg,
+      #ffffff 0%,
+      #e9eef3 34%,
+      #9aa5b1 52%,
+      #d9e1e8 66%,
+      #f6f9fb 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 14px rgb(0 0 0 / 0.55));
+  }
+
+  .text-cyan-gradient {
+    background: linear-gradient(90deg, #12c8ff, #1aa3ff 70%, #3db8ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* --- Hero stage ------------------------------------------------------
+     --s is the concept's scale unit (1 unit = 1/100 of the 1672px mockup
+     width, capped by height so the composition always fits). */
+  .hero-stage {
+    --s: min(1vw, 1.72svh);
+    container-type: size;
+  }
+}
+
+/* Intro: hide animated elements only when JS is running, with a CSS
+   failsafe that reveals them if the timeline never starts. */
+.js [data-intro] {
+  opacity: 0;
+  animation: intro-failsafe 0.6s ease 3.5s forwards;
+}
+.js [data-intro-settle] {
+  transform: translateY(28px) scale(1.035);
+  animation: intro-settle 0.8s ease 3.5s forwards;
+}
+.js.intro-started [data-intro],
+.js.intro-started [data-intro-settle] {
+  animation: none;
+}
+@keyframes intro-settle {
+  to {
+    transform: none;
+  }
+}
+@keyframes intro-failsafe {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* card posters give way to the live 3D objects once the overlay canvas renders */
+[data-overlay="ready"] [data-poster="3d"] {
+  opacity: 0;
+}

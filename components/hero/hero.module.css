@@ -1,0 +1,524 @@
+/*
+ * Hero geometry.
+ *
+ * Flow layout (default): stacked portrait → copy → panels → cards.
+ * Stage layout (≥1024px and landscape): the concept composition. Coordinates
+ * are in concept units: 1 --s = 1/100 of the 1672px mockup width, so a value
+ * like `calc(var(--s) * 4.67)` is "78px in the mockup". --extra is the spare
+ * height a 16:10 screen has over the 16:9 mockup; top-anchored groups absorb
+ * a share of it so nothing bunches up.
+ */
+
+.hero {
+  --visual-h: clamp(380px, 112vw, 620px);
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  padding-top: 4.75rem;
+  padding-bottom: 3rem;
+}
+
+/* ---------- backdrop: CSS base + WebGL canvas ---------- */
+.backdrop {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(4.75rem + var(--visual-h) + 4rem);
+  z-index: 0;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, black 78%, transparent);
+}
+
+.base {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 55% at 56% 38%, rgb(19 48 73 / 0.55), transparent 70%),
+    radial-gradient(40% 40% at 8% 92%, rgb(255 41 73 / 0.12), transparent 70%),
+    radial-gradient(30% 50% at 92% 18%, rgb(255 41 73 / 0.1), transparent 70%),
+    url("/images/svg/backgrounds/dark-cyber-grid.svg") center / cover no-repeat,
+    var(--color-bg);
+}
+
+.baseFloor {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 45%;
+  background: url("/images/svg/backgrounds/perspective-floor.svg") center bottom / 100% 100% no-repeat;
+  opacity: 0.5;
+}
+
+.particles {
+  position: absolute;
+  inset: 0;
+  background: url("/images/svg/backgrounds/particle-overlay.svg") center / cover no-repeat;
+  opacity: 0.8;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.canvas[data-ready="true"] {
+  opacity: 1;
+}
+
+/* grid + grain sit above the canvas so the WebGL scene can stay opaque (bloom) */
+.grid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(47 165 224 / 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(47 165 224 / 0.09) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(75% 70% at 55% 40%, black 30%, transparent 85%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+[data-webgl="on"] .grid {
+  opacity: 1;
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background: url("/textures/star-noise-overlay.png") 0 0 / 512px 512px repeat;
+  opacity: 0.35;
+  mix-blend-mode: screen;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, transparent 55%, rgb(4 10 16 / 0.85) 94%, var(--color-bg) 100%),
+    linear-gradient(to right, rgb(4 10 16 / 0.45), transparent 18%, transparent 80%, rgb(4 10 16 / 0.5));
+}
+
+/* ---------- portrait ---------- */
+.visual {
+  position: relative;
+  z-index: 3;
+  height: var(--visual-h);
+  pointer-events: none;
+}
+
+.portrait {
+  --pw: calc(var(--visual-h) * 0.7826);
+  position: absolute;
+  bottom: 0;
+  left: calc(50% - var(--pw) * 0.5);
+  width: var(--pw);
+  aspect-ratio: 1152 / 1472;
+}
+
+.portraitInner {
+  --fade-y: linear-gradient(to bottom, black 62%, transparent 94%);
+  --fade-x: linear-gradient(to right, transparent 0%, black 14%, black 90%, transparent 100%);
+  --matte: url("/images/portrait/bilal-matte.png");
+  position: absolute;
+  inset: 0;
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  mask-image: var(--fade-y), var(--fade-x);
+  mask-composite: intersect;
+}
+.photo img {
+  object-fit: contain;
+}
+
+.rim {
+  position: absolute;
+  inset: 0;
+  mask-image: var(--matte), var(--fade-y), var(--fade-x);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-composite: intersect;
+}
+.rimBlue {
+  z-index: 1;
+  background: linear-gradient(215deg, #b8f3ff 0%, #22c8ff 26%, #0b7cff 48%, transparent 66%);
+  transform: translate(0.85%, -0.45%);
+  filter: blur(2.5px);
+}
+.rimRed {
+  z-index: 1;
+  background: linear-gradient(35deg, #ff2949 0%, rgb(255 41 73 / 0.5) 28%, transparent 52%);
+  transform: translate(-0.7%, 0.35%);
+  filter: blur(3px);
+  opacity: 0.7;
+}
+.lightWrap {
+  z-index: 3;
+  background:
+    radial-gradient(42% 38% at 86% 22%, rgb(40 190 255 / 0.55), transparent 70%),
+    radial-gradient(36% 30% at 6% 70%, rgb(255 41 73 / 0.25), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+/* Anchors: invisible boxes the WebGL scene reads to place the portal ring and
+   backplate behind the head. Percentages are of the portrait box. */
+.anchor {
+  position: absolute;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+.ringAnchor {
+  left: 56%;
+  top: 41%;
+  width: 60%;
+}
+.discAnchor {
+  left: 63%;
+  top: 34%;
+  width: 84%;
+}
+
+/* CSS fallbacks for the portal (no WebGL / before the scene is ready) */
+.fallbackRing {
+  position: absolute;
+  inset: -12%;
+  background: url("/images/svg/backgrounds/neon-portal-ring.svg") center / contain no-repeat;
+  animation: spin 80s linear infinite;
+}
+.fallbackDisc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #0d1a27, #070f18 70%);
+  box-shadow:
+    inset -3px 0 0 rgb(28 160 255 / 0.55),
+    0 0 40px rgb(0 0 0 / 0.6);
+}
+[data-webgl="on"] .fallbackRing,
+[data-webgl="on"] .fallbackDisc {
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+.motto {
+  position: absolute;
+  z-index: 2;
+  left: 70%;
+  top: 9%;
+  transform: rotate(-21deg);
+  font-family: var(--font-hand);
+  font-size: clamp(10px, 2.6vw, 18px);
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(214 228 240 / 0.78);
+  white-space: nowrap;
+}
+.motto::after {
+  content: "";
+  display: block;
+  width: 3.2em;
+  height: 2px;
+  margin: 0.45em 0 0 2.6em;
+  background: var(--color-cyan);
+  box-shadow: 0 0 8px var(--color-cyan);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* ---------- echo silhouette (the concept's dark "statue") ---------- */
+.echo {
+  display: none;
+}
+
+/* ---------- copy ---------- */
+.copy {
+  position: relative;
+  z-index: 5;
+  margin-top: -2.5rem;
+  padding: 0 1.25rem;
+}
+
+.greeting {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgb(232 244 255 / 0.78);
+}
+
+.name {
+  margin-top: 0.6rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(3.1rem, 16.5vw, 6.2rem);
+  line-height: 0.9;
+  letter-spacing: -0.012em;
+  text-transform: uppercase;
+}
+.nameLine {
+  display: block;
+  overflow: hidden;
+  padding: 0.02em 0 0.04em;
+}
+.nameInner {
+  display: inline-block;
+}
+.cursor {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.09em;
+  height: 0.78em;
+  margin-left: 0.14em;
+  vertical-align: baseline;
+}
+.cursor::before {
+  content: "";
+  width: 0.05em;
+  height: 100%;
+  background: var(--color-cyan);
+  box-shadow: 0 0 12px var(--color-cyan);
+  animation: var(--animate-blink);
+}
+.cursor::after {
+  content: "";
+  width: 0.11em;
+  height: 0.11em;
+  background: var(--color-cyan);
+  box-shadow: 0 0 10px var(--color-cyan);
+}
+
+.roles {
+  margin-top: 1rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.45rem, 6.6vw, 2.3rem);
+  line-height: 1.17;
+  letter-spacing: -0.01em;
+}
+
+.tagline {
+  margin-top: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgb(205 220 233 / 0.8);
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+.cta {
+  height: 3.1rem;
+  padding: 0 1.4rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+/* ---------- panels (HUD + terminal) ---------- */
+.panels {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 2.25rem;
+  padding: 0 1.25rem;
+}
+
+/* ---------- cards ---------- */
+.cards {
+  position: relative;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0 1.25rem;
+}
+
+.heroFooter {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .hero {
+    --visual-h: clamp(460px, 80vw, 640px);
+  }
+  .copy,
+  .panels,
+  .cards {
+    padding: 0 2rem;
+  }
+  .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .panels {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+/* =====================  STAGE LAYOUT  ===================== */
+@media (min-width: 1024px) and (min-aspect-ratio: 5/4) {
+  .hero {
+    --s: min(1vw, 1.72svh);
+    --extra: max(0px, 100svh - var(--s) * 56.3);
+    container-type: size;
+    height: max(100svh, 600px);
+    padding: 0;
+  }
+
+  .backdrop {
+    inset: 0;
+    height: auto;
+    mask-image: none;
+  }
+
+  .visual {
+    position: absolute;
+    inset: 0;
+    height: auto;
+  }
+
+  .portrait {
+    --ph: min(89cqh, 57cqw);
+    --pw: calc(var(--ph) * 0.7826);
+    top: 5.2cqh;
+    bottom: auto;
+    left: calc(47.4cqw - var(--pw) * 0.472);
+    height: var(--ph);
+    width: auto;
+  }
+
+  .portraitInner {
+    --fade-y: linear-gradient(to bottom, black 56%, transparent 79%);
+    --fade-x: linear-gradient(to right, transparent 0%, black 16%, black 86%, transparent 100%);
+  }
+
+  .motto {
+    font-size: calc(var(--s) * 1.12);
+    left: 75%;
+    top: 13%;
+  }
+
+  .echo {
+    display: block;
+    position: absolute;
+    z-index: 2;
+    top: calc(var(--s) * -4);
+    left: calc(var(--s) * 61);
+    width: calc(var(--s) * 30);
+    aspect-ratio: 1152 / 1472;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+
+  .copy {
+    position: absolute;
+    left: calc(var(--s) * 4.67);
+    top: calc(var(--s) * 8.2 + var(--extra) * 0.45);
+    width: calc(var(--s) * 36);
+    margin: 0;
+    padding: 0;
+  }
+  .greeting {
+    font-size: max(11px, calc(var(--s) * 0.92));
+    letter-spacing: 0.36em;
+  }
+  .name {
+    margin-top: calc(var(--s) * 1.15);
+    font-size: calc(var(--s) * 5.55);
+  }
+  .roles {
+    margin-top: calc(var(--s) * 1.2);
+    font-size: calc(var(--s) * 2.12);
+  }
+  .tagline {
+    margin-top: calc(var(--s) * 1.1);
+    font-size: max(10px, calc(var(--s) * 0.86));
+    letter-spacing: 0.42em;
+  }
+  .ctas {
+    flex-wrap: nowrap;
+    gap: calc(var(--s) * 1.08);
+    margin-top: calc(var(--s) * 2.1);
+  }
+  .cta {
+    height: calc(var(--s) * 3.35);
+    padding: 0 calc(var(--s) * 1.95);
+    font-size: max(12.5px, calc(var(--s) * 0.93));
+  }
+  .stats {
+    gap: calc(var(--s) * 2.4);
+    margin-top: calc(var(--s) * 2.4);
+  }
+
+  .panels {
+    position: absolute;
+    inset: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+    perspective: calc(var(--s) * 90);
+  }
+
+  .cards {
+    position: absolute;
+    left: calc(var(--s) * 4);
+    right: calc(var(--s) * 3.4);
+    bottom: calc(var(--s) * 7.1);
+    height: max(calc(var(--s) * 13.2), 150px);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: calc(var(--s) * 0.78);
+    margin: 0;
+    padding: 0;
+  }
+
+  .heroFooter {
+    display: block;
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 6;
+    height: calc(var(--s) * 7.1);
+  }
+}
+
+.echoInner {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(-1);
+  background:
+    radial-gradient(60% 40% at 30% 30%, rgb(40 120 200 / 0.32), transparent 70%),
+    linear-gradient(160deg, #0b1724 10%, #050a10 70%);
+  mask-image: url("/images/portrait/bilal-matte.png"), linear-gradient(to bottom, black 22%, transparent 50%);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-composite: intersect;
+  filter: drop-shadow(-2px 0 0 rgb(40 170 255 / 0.55)) drop-shadow(-10px 0 18px rgb(20 150 255 / 0.35));
+  opacity: 0.85;
+}
